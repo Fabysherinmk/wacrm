@@ -742,7 +742,12 @@ export function MessageThread({
             {displayName.charAt(0).toUpperCase()}
           </div>
           <div className="min-w-0">
-            <h2 className="truncate text-sm font-semibold text-white">{displayName}</h2>
+            <h2 className="truncate text-sm font-semibold text-white">
+              {displayName}
+              {assignedAgentId && currentAssignee && (
+                <span className="text-slate-400 font-normal"> ({currentAssignee.full_name})</span>
+              )}
+            </h2>
             <p className="truncate text-xs text-slate-400">{contact.phone}</p>
           </div>
           {/* Session timer badge — hidden on the narrowest phones so

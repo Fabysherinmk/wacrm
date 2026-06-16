@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import type { Conversation, ConversationStatus } from "@/types";
+import type { Conversation, ConversationStatus, Profile } from "@/types";
 import { Search, ChevronDown } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Input } from "@/components/ui/input";
@@ -53,6 +53,23 @@ export function ConversationList({
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<ConversationStatus | "all">("all");
   const [loading, setLoading] = useState(true);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const supabase = createClient();
+    supabase
+      .from("profiles")
+      .select("*")
+      .then(({ data, error }) => {
+        if (!cancelled && !error && data) {
+          setProfiles(data as Profile[]);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Keep the latest callback in a ref so the fetch effect below can
   // have a stable, empty-dep identity. Previously the fetch useCallback
@@ -210,6 +227,7 @@ export function ConversationList({
                 conversation={conv}
                 isActive={conv.id === activeConversationId}
                 onSelect={handleSelect}
+                profiles={profiles}
               />
             ))}
           </div>
@@ -223,12 +241,14 @@ interface ConversationItemProps {
   conversation: Conversation;
   isActive: boolean;
   onSelect: (conversation: Conversation) => void;
+  profiles: Profile[];
 }
 
 function ConversationItem({
   conversation,
   isActive,
   onSelect,
+  profiles,
 }: ConversationItemProps) {
   const contact = conversation.contact;
   const displayName = contact?.name || contact?.phone || "Unknown";
@@ -243,6 +263,9 @@ function ConversationItem({
         addSuffix: false,
       })
     : "";
+
+  const assignedAgentId = conversation.assigned_agent_id;
+  const currentAssignee = profiles.find((p) => p.user_id === assignedAgentId);
 
   return (
     <button
@@ -270,6 +293,9 @@ function ConversationItem({
         <div className="flex items-center justify-between gap-2">
           <span className="truncate text-sm font-medium text-white">
             {displayName}
+            {currentAssignee && (
+              <span className="text-slate-400 font-normal"> ({currentAssignee.full_name})</span>
+            )}
           </span>
           <span className="shrink-0 text-[10px] text-slate-500">{timeAgo}</span>
         </div>
